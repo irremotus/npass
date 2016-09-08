@@ -1,0 +1,37 @@
+#!/bin/bash
+
+NPASS_DIR=$HOME/.npass
+
+# Get the name we were run as
+NAME=$(basename $0)
+
+# If we are not run as npass, then the user wants to use pass
+if [ ! "$NAME" = "npass" ]; then
+	read PASSWORD_STORE_DIR < $NPASS_DIR/dirs/$NAME
+	export PASSWORD_STORE_DIR
+
+	shift
+	pass "$@"
+	exit $?
+fi
+
+echo "npass"
+
+# We were run as npass
+if [ "$1" = "move" ]; then
+	STORE="$2"
+	TO="$3"
+	echo $TO > $NPASS_DIR/dirs/$STORE
+	echo "Changed store $STORE to use directory $TO"
+fi
+
+if [ "$1" = "rename" ]; then
+	FROM="$2"
+	TO="$3"
+	WHERE=$(which $FROM)
+	rm $WHERE
+	ln -s $(which npass) $(dirname $WHERE)/$TO
+	mv $NPASS_DIR/dirs/$FROM $NPASS_DIR/dirs/$TO
+	echo "Renamed store $FROM to $TO"
+fi
+
