@@ -7,17 +7,40 @@ NAME=$(basename $0)
 
 # If we are not run as npass, then the user wants to use pass
 if [ ! "$NAME" = "npass" ]; then
-	read PASSWORD_STORE_DIR < $NPASS_DIR/dirs/$NAME
-	export PASSWORD_STORE_DIR
+	# Get the password store directory for the given name
+	PASS_DIR="$HOME/.password-store"
+	REAL_PASS_DIR=$(<$NPASS_DIR/dirs/$NAME)
 
-	shift
+	# Make sure there is not a password store in the default directory
+	# Remove the symlink to the real directory if one exists
+	if [ -e $PASS_DIR ]; then
+		if [ -L $PASS_DIR ]; then
+			rm $PASS_DIR
+		else
+			echo "ERROR:  A password store exists in the default directory."
+			exit 1
+		fi
+	fi
+
+	# Make sure the real password store exists
+	if [ ! -e $REAL_PASS_DIR ]; then
+		echo "ERROR:  The password store \"$REAL_PASS_DIR\" does not exist."
+		exit 1
+	fi
+
+	ln -s $REAL_PASS_DIR $PASS_DIR
+
 	pass "$@"
-	exit $?
+	PASS_STATUS=$?
+
+	rm $PASS_DIR
+
+	exit $PASS_STATUS
 fi
 
 echo "npass"
 
-# We were run as npass
+# We were run as npass, so the user wants to manage pass directories
 if [ "$1" = "move" ]; then
 	STORE="$2"
 	TO="$3"
